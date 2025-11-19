@@ -158,6 +158,7 @@ export const StorageKeys = {
 
 // Type imports
 import type { Expense, Account } from "./types";
+import type { Bill, PaySchedule } from "./types";
 
 /**
  * Expense management helpers
@@ -293,5 +294,89 @@ export const AccountStorage = {
   getById(id: string): Account | null {
     const accounts = this.getAll();
     return accounts.find((a) => a.id === id) || null;
+  },
+};
+
+/**
+ * Bill management helpers
+ */
+export const BillStorage = {
+  /**
+   * Get all bills
+   */
+  getAll(): Bill[] {
+    return Storage.get<Bill[]>(StorageKeys.BILLS) || [];
+  },
+
+  /**
+   * Get bills due in a specific month (assumes monthly recurrence by default)
+   */
+  getDueDatesForMonth(
+    year: number,
+    month: number
+  ): Array<{
+    id: string;
+    name: string;
+    date: string;
+    amount?: number;
+    accountId?: string;
+  }> {
+    const bills = this.getAll();
+    return bills
+      .filter((b) => b.recurrence === "monthly" || !b.recurrence)
+      .map((b) => {
+        const day = Math.min(Math.max(1, b.dueDay), 28); // avoid invalid dates (28 as safe cap)
+        const date = new Date(year, month, day);
+        return {
+          id: b.id,
+          name: b.name,
+          date: date.toISOString(),
+          amount: b.amount || b.minAmount,
+          accountId: b.accountId,
+        };
+      });
+  },
+};
+
+/**
+ * PaySchedule helpers
+ */
+export const PayScheduleStorage = {
+  get(): PaySchedule | null {
+    return Storage.get<PaySchedule>(StorageKeys.PAY_SCHEDULE);
+  },
+
+  /**
+   * Compute paydays for a given month based on schedule.
+   * Currently supports bi-weekly; other frequencies return empty array.
+   */
+  getPaydaysForMonth(year: number, month: number): string[] {
+    const schedule = this.get();
+    if (!schedule) return [];
+
+    const paydays: string[] = [];
+    if (schedule.frequency === "bi-weekly") {
+      const anchor = new Date(schedule.nextPayDate);
+      if (isNaN(anchor.getTime())) return [];
+
+      // Find a payday within or just before the target month
+      const monthStart = new Date(year, month, 1);
+      const monthEnd = new Date(year, month + 1, 0);
+
+      // Step backwards by 14 days until anchor <= monthEnd
+      let cursor = new Date(anchor);
+      while (cursor.getTime() > monthEnd.getTime()) {
+        cursor.setDate(cursor.getDate() - 14);
+      }
+      // Step forward adding all occurrences within month range (with small buffer)
+      while (cursor.getTime() < new Date(year, month + 1, 7).getTime()) {
+        if (cursor.getFullYear() === year && cursor.getMonth() === month) {
+          paydays.push(new Date(cursor).toISOString());
+        }
+        cursor.setDate(cursor.getDate() + 14);
+      }
+    }
+
+    return paydays;
   },
 };

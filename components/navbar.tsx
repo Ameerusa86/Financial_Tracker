@@ -36,6 +36,7 @@ const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Income", href: "/income", icon: TrendingUp },
   { name: "Expenses", href: "/expenses", icon: TrendingDown },
+  { name: "Calendar", href: "/calendar", icon: CalendarDays },
 ];
 
 const financeItems = [
