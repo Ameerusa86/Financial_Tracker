@@ -72,7 +72,11 @@ export function ExpenseBreakdown() {
         <CardTitle>Expense Breakdown by Category</CardTitle>
       </CardHeader>
       <CardContent>
-        {data.length === 0 ? (
+        {!isMounted ? (
+          <div className="text-center py-8 text-muted-foreground h-[350px] flex items-center justify-center">
+            Loading...
+          </div>
+        ) : data.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground h-[350px] flex items-center justify-center">
             No expense data for this month yet.
           </div>

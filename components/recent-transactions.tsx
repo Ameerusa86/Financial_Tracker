@@ -48,7 +48,11 @@ export function RecentTransactions() {
         <CardTitle>Recent Transactions</CardTitle>
       </CardHeader>
       <CardContent>
-        {expenses.length === 0 ? (
+        {!isMounted ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Loading...
+          </div>
+        ) : expenses.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             No transactions yet. Add expenses to see them here.
           </div>

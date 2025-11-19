@@ -22,8 +22,10 @@ interface ChartData {
 
 export function MonthlyChart() {
   const [data, setData] = useState<ChartData[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     const now = new Date();
     const chartData: ChartData[] = [];
 
@@ -53,7 +55,7 @@ export function MonthlyChart() {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={data}>
+          <BarChart data={isMounted ? data : []}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="month" />
             <YAxis />

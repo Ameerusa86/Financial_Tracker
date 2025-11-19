@@ -77,6 +77,7 @@ export default function ExpensesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const [formData, setFormData] = useState({
     description: "",
     amount: "",
@@ -87,6 +88,7 @@ export default function ExpensesPage() {
 
   // Load expenses on mount
   useEffect(() => {
+    setIsMounted(true);
     loadExpenses();
   }, []);
 
@@ -166,10 +168,9 @@ export default function ExpensesPage() {
 
   // Get current month's expenses
   const now = new Date();
-  const currentMonthExpenses = ExpenseStorage.getByMonth(
-    now.getFullYear(),
-    now.getMonth()
-  );
+  const currentMonthExpenses = isMounted
+    ? ExpenseStorage.getByMonth(now.getFullYear(), now.getMonth())
+    : [];
   const totalExpenses = currentMonthExpenses.reduce(
     (sum, e) => sum + e.amount,
     0
@@ -181,7 +182,7 @@ export default function ExpensesPage() {
     return acc;
   }, {} as Record<string, number>);
 
-  const accounts = AccountStorage.getAll();
+  const accounts = isMounted ? AccountStorage.getAll() : [];
 
   return (
     <div className="space-y-8">
