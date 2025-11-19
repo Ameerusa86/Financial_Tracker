@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   TrendingUp,
@@ -12,17 +14,60 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecentTransactions } from "@/components/recent-transactions";
 import { MonthlyChart } from "@/components/monthly-chart";
 import { ExpenseBreakdown } from "@/components/expense-breakdown";
+import { useEffect, useState } from "react";
+import {
+  AccountStorage,
+  ExpenseStorage,
+  PayScheduleStorage,
+} from "@/lib/storage";
 
 export default function DashboardPage() {
-  // Mock data
-  const stats = {
-    totalIncome: 8500,
-    totalExpenses: 4250,
-    creditCardDebt: 2300,
-    totalLoans: 15000,
-    savings: 25000,
-    netWorth: 16450,
-  };
+  const [stats, setStats] = useState({
+    totalIncome: 0,
+    totalExpenses: 0,
+    creditCardDebt: 0,
+    totalLoans: 0,
+    savings: 0,
+  });
+
+  useEffect(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+
+    // Expenses (current month)
+    const monthlyExpenses = ExpenseStorage.getByMonth(year, month);
+    const totalExpenses = monthlyExpenses.reduce(
+      (sum, e) => sum + (e.amount || 0),
+      0
+    );
+
+    // Income (estimate from pay schedule)
+    const schedule = PayScheduleStorage.get();
+    const paydays = PayScheduleStorage.getPaydaysForMonth(year, month);
+    const typicalAmount = schedule?.typicalAmount ?? 0;
+    const totalIncome = paydays.length * typicalAmount;
+
+    // Accounts aggregation
+    const accounts = AccountStorage.getAll();
+    const creditCardDebt = accounts
+      .filter((a) => a.type === "credit")
+      .reduce((sum, a) => sum + (a.balance || 0), 0);
+    const totalLoans = accounts
+      .filter((a) => a.type === "loan")
+      .reduce((sum, a) => sum + (a.balance || 0), 0);
+    const savings = accounts
+      .filter((a) => a.type === "savings")
+      .reduce((sum, a) => sum + (a.balance || 0), 0);
+
+    setStats({
+      totalIncome,
+      totalExpenses,
+      creditCardDebt,
+      totalLoans,
+      savings,
+    });
+  }, []);
 
   return (
     <div className="space-y-8">
