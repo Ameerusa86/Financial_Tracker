@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart,
@@ -11,17 +12,38 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { ExpenseStorage } from "@/lib/storage";
 
-const data = [
-  { month: "Jun", income: 7200, expenses: 3800 },
-  { month: "Jul", income: 7500, expenses: 4100 },
-  { month: "Aug", income: 8000, expenses: 4500 },
-  { month: "Sep", income: 7800, expenses: 3900 },
-  { month: "Oct", income: 8200, expenses: 4200 },
-  { month: "Nov", income: 8500, expenses: 4250 },
-];
+interface ChartData {
+  month: string;
+  income: number;
+  expenses: number;
+}
 
 export function MonthlyChart() {
+  const [data, setData] = useState<ChartData[]>([]);
+
+  useEffect(() => {
+    const now = new Date();
+    const chartData: ChartData[] = [];
+    
+    // Generate last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+      const expenses = ExpenseStorage.getByMonth(date.getFullYear(), date.getMonth())
+        .reduce((sum, e) => sum + e.amount, 0);
+      
+      chartData.push({
+        month: monthName,
+        income: 0, // TODO: Will be populated when income feature is implemented
+        expenses,
+      });
+    }
+    
+    setData(chartData);
+  }, []);
+
   return (
     <Card>
       <CardHeader>

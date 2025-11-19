@@ -155,3 +155,143 @@ export const StorageKeys = {
   PLANNED_PAYMENTS: "planned_payments",
   SETTINGS: "settings",
 } as const;
+
+// Type imports
+import type { Expense, Account } from "./types";
+
+/**
+ * Expense management helpers
+ */
+export const ExpenseStorage = {
+  /**
+   * Get all expenses
+   */
+  getAll(): Expense[] {
+    return Storage.get<Expense[]>(StorageKeys.EXPENSES) || [];
+  },
+
+  /**
+   * Get a single expense by ID
+   */
+  getById(id: string): Expense | null {
+    const expenses = this.getAll();
+    return expenses.find((e) => e.id === id) || null;
+  },
+
+  /**
+   * Add a new expense
+   */
+  add(expense: Omit<Expense, "id" | "createdAt">): Expense {
+    const expenses = this.getAll();
+    const newExpense: Expense = {
+      ...expense,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    expenses.push(newExpense);
+    Storage.set(StorageKeys.EXPENSES, expenses);
+    return newExpense;
+  },
+
+  /**
+   * Update an existing expense
+   */
+  update(
+    id: string,
+    updates: Partial<Omit<Expense, "id" | "createdAt">>
+  ): Expense | null {
+    const expenses = this.getAll();
+    const index = expenses.findIndex((e) => e.id === id);
+
+    if (index === -1) return null;
+
+    expenses[index] = { ...expenses[index], ...updates };
+    Storage.set(StorageKeys.EXPENSES, expenses);
+    return expenses[index];
+  },
+
+  /**
+   * Delete an expense
+   */
+  delete(id: string): boolean {
+    const expenses = this.getAll();
+    const filtered = expenses.filter((e) => e.id !== id);
+
+    if (filtered.length === expenses.length) return false;
+
+    Storage.set(StorageKeys.EXPENSES, filtered);
+    return true;
+  },
+
+  /**
+   * Get expenses for a specific month
+   */
+  getByMonth(year: number, month: number): Expense[] {
+    const expenses = this.getAll();
+    return expenses.filter((expense) => {
+      const date = new Date(expense.date);
+      return date.getFullYear() === year && date.getMonth() === month;
+    });
+  },
+
+  /**
+   * Get expenses by category
+   */
+  getByCategory(category: string): Expense[] {
+    const expenses = this.getAll();
+    return expenses.filter((expense) => expense.category === category);
+  },
+
+  /**
+   * Get total expenses for a date range
+   */
+  getTotalForRange(startDate: string, endDate: string): number {
+    const expenses = this.getAll();
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    return expenses
+      .filter((expense) => {
+        const date = new Date(expense.date);
+        return date >= start && date <= end;
+      })
+      .reduce((sum, expense) => sum + expense.amount, 0);
+  },
+
+  /**
+   * Get category breakdown for a month
+   */
+  getCategoryBreakdown(year: number, month: number): Record<string, number> {
+    const expenses = this.getByMonth(year, month);
+    const breakdown: Record<string, number> = {};
+
+    expenses.forEach((expense) => {
+      if (!breakdown[expense.category]) {
+        breakdown[expense.category] = 0;
+      }
+      breakdown[expense.category] += expense.amount;
+    });
+
+    return breakdown;
+  },
+};
+
+/**
+ * Account management helpers
+ */
+export const AccountStorage = {
+  /**
+   * Get all accounts
+   */
+  getAll(): Account[] {
+    return Storage.get<Account[]>(StorageKeys.ACCOUNTS) || [];
+  },
+
+  /**
+   * Get a single account by ID
+   */
+  getById(id: string): Account | null {
+    const accounts = this.getAll();
+    return accounts.find((a) => a.id === id) || null;
+  },
+};

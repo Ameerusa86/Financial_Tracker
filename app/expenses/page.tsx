@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,103 +36,125 @@ import {
   Home,
   Heart,
   Film,
+  Trash2,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { ExpenseStorage, AccountStorage } from "@/lib/storage";
+import type { Expense, ExpenseCategory } from "@/lib/types";
 
-const expenseTransactions = [
-  {
-    id: 1,
-    date: new Date("2024-11-14"),
-    description: "Whole Foods Market",
-    amount: 120,
-    category: "Food & Dining",
-  },
-  {
-    id: 2,
-    date: new Date("2024-11-13"),
-    description: "Electric Bill",
-    amount: 85,
-    category: "Utilities",
-  },
-  {
-    id: 3,
-    date: new Date("2024-11-11"),
-    description: "Shell Gas Station",
-    amount: 50,
-    category: "Transportation",
-  },
-  {
-    id: 4,
-    date: new Date("2024-11-10"),
-    description: "Italian Restaurant",
-    amount: 65,
-    category: "Food & Dining",
-  },
-  {
-    id: 5,
-    date: new Date("2024-11-09"),
-    description: "Amazon - Books",
-    amount: 45,
-    category: "Shopping",
-  },
-  {
-    id: 6,
-    date: new Date("2024-11-08"),
-    description: "Gym Membership",
-    amount: 50,
-    category: "Healthcare",
-  },
-  {
-    id: 7,
-    date: new Date("2024-11-07"),
-    description: "Netflix Subscription",
-    amount: 15,
-    category: "Entertainment",
-  },
-  {
-    id: 8,
-    date: new Date("2024-11-06"),
-    description: "Starbucks",
-    amount: 12,
-    category: "Food & Dining",
-  },
-  {
-    id: 9,
-    date: new Date("2024-11-05"),
-    description: "Target - Household Items",
-    amount: 85,
-    category: "Shopping",
-  },
-  {
-    id: 10,
-    date: new Date("2024-11-04"),
-    description: "Internet Bill",
-    amount: 70,
-    category: "Utilities",
-  },
-];
+const categoryIcons: Record<ExpenseCategory, any> = {
+  groceries: ShoppingBag,
+  dining: Utensils,
+  transportation: Car,
+  utilities: Home,
+  entertainment: Film,
+  healthcare: Heart,
+  shopping: ShoppingBag,
+  housing: Home,
+  insurance: Heart,
+  debt: TrendingDown,
+  savings: TrendingDown,
+  other: ShoppingBag,
+};
 
-const categoryIcons = {
-  "Food & Dining": Utensils,
-  Transportation: Car,
-  Utilities: Home,
-  Shopping: ShoppingBag,
-  Healthcare: Heart,
-  Entertainment: Film,
+const categoryLabels: Record<ExpenseCategory, string> = {
+  groceries: "Groceries",
+  dining: "Dining",
+  transportation: "Transportation",
+  utilities: "Utilities",
+  entertainment: "Entertainment",
+  healthcare: "Healthcare",
+  shopping: "Shopping",
+  housing: "Housing",
+  insurance: "Insurance",
+  debt: "Debt",
+  savings: "Savings",
+  other: "Other",
 };
 
 export default function ExpensesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const totalExpenses = expenseTransactions.reduce(
-    (sum, t) => sum + t.amount,
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [formData, setFormData] = useState({
+    description: "",
+    amount: "",
+    category: "" as ExpenseCategory | "",
+    date: new Date().toISOString().split("T")[0],
+    accountId: "",
+  });
+
+  // Load expenses on mount
+  useEffect(() => {
+    loadExpenses();
+  }, []);
+
+  const loadExpenses = () => {
+    const allExpenses = ExpenseStorage.getAll();
+    // Sort by date descending
+    allExpenses.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    setExpenses(allExpenses);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (
+      !formData.description ||
+      !formData.amount ||
+      !formData.category ||
+      !formData.date
+    ) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    ExpenseStorage.add({
+      date: formData.date,
+      amount: parseFloat(formData.amount),
+      category: formData.category as ExpenseCategory,
+      description: formData.description,
+      accountId: formData.accountId || undefined,
+    });
+
+    // Reset form and reload
+    setFormData({
+      description: "",
+      amount: "",
+      category: "",
+      date: new Date().toISOString().split("T")[0],
+      accountId: "",
+    });
+    setIsDialogOpen(false);
+    loadExpenses();
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this expense?")) {
+      ExpenseStorage.delete(id);
+      loadExpenses();
+    }
+  };
+
+  // Get current month's expenses
+  const now = new Date();
+  const currentMonthExpenses = ExpenseStorage.getByMonth(
+    now.getFullYear(),
+    now.getMonth()
+  );
+  const totalExpenses = currentMonthExpenses.reduce(
+    (sum, e) => sum + e.amount,
     0
   );
 
-  const categoryTotals = expenseTransactions.reduce((acc, transaction) => {
-    acc[transaction.category] =
-      (acc[transaction.category] || 0) + transaction.amount;
+  const categoryTotals = currentMonthExpenses.reduce((acc, expense) => {
+    const label = categoryLabels[expense.category];
+    acc[label] = (acc[label] || 0) + expense.amount;
     return acc;
   }, {} as Record<string, number>);
+
+  const accounts = AccountStorage.getAll();
 
   return (
     <div className="space-y-8">
@@ -154,38 +176,103 @@ export default function ExpensesPage() {
             <DialogHeader>
               <DialogTitle>Add New Expense</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <form onSubmit={handleSubmit} className="space-y-4 py-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Description</label>
-                <Input placeholder="e.g., Grocery Shopping" />
+                <label className="text-sm font-medium">Description *</label>
+                <Input
+                  placeholder="e.g., Grocery Shopping"
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  required
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Amount</label>
-                <Input type="number" placeholder="0.00" />
+                <label className="text-sm font-medium">Amount *</label>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  value={formData.amount}
+                  onChange={(e) =>
+                    setFormData({ ...formData, amount: e.target.value })
+                  }
+                  required
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Category</label>
-                <Select>
+                <label className="text-sm font-medium">Category *</label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      category: value as ExpenseCategory,
+                    })
+                  }
+                  required
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="food">Food & Dining</SelectItem>
-                    <SelectItem value="transport">Transportation</SelectItem>
+                    <SelectItem value="groceries">Groceries</SelectItem>
+                    <SelectItem value="dining">Dining</SelectItem>
+                    <SelectItem value="transportation">
+                      Transportation
+                    </SelectItem>
                     <SelectItem value="utilities">Utilities</SelectItem>
                     <SelectItem value="shopping">Shopping</SelectItem>
                     <SelectItem value="healthcare">Healthcare</SelectItem>
                     <SelectItem value="entertainment">Entertainment</SelectItem>
+                    <SelectItem value="housing">Housing</SelectItem>
+                    <SelectItem value="insurance">Insurance</SelectItem>
+                    <SelectItem value="debt">Debt</SelectItem>
+                    <SelectItem value="savings">Savings</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Date</label>
-                <Input type="date" />
+                <label className="text-sm font-medium">Date *</label>
+                <Input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) =>
+                    setFormData({ ...formData, date: e.target.value })
+                  }
+                  required
+                />
               </div>
-              <Button className="w-full">Add Expense</Button>
-            </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Account (Optional)
+                </label>
+                <Select
+                  value={formData.accountId}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, accountId: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {accounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit" className="w-full">
+                Add Expense
+              </Button>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -238,32 +325,59 @@ export default function ExpensesPage() {
           <CardTitle>Expense Transactions</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {expenseTransactions.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell className="font-medium">
-                    {formatDate(transaction.date)}
-                  </TableCell>
-                  <TableCell>{transaction.description}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{transaction.category}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-semibold text-red-600">
-                    {formatCurrency(transaction.amount)}
-                  </TableCell>
+          {expenses.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No expenses yet. Click "Add Expense" to get started.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Account</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {expenses.map((expense) => {
+                  const account = expense.accountId
+                    ? AccountStorage.getById(expense.accountId)
+                    : null;
+                  return (
+                    <TableRow key={expense.id}>
+                      <TableCell className="font-medium">
+                        {formatDate(new Date(expense.date))}
+                      </TableCell>
+                      <TableCell>{expense.description}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {categoryLabels[expense.category]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {account ? account.name : "-"}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-red-600">
+                        {formatCurrency(expense.amount)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(expense.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
