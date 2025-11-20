@@ -20,8 +20,12 @@ export const auth = (async () => {
     secret: required("BETTER_AUTH_SECRET"),
     database: mongodbAdapter(db, { client }),
     session: {
-      expiresIn: 60 * 30, // 30 minutes in seconds
-      updateAge: 60 * 5, // Update session every 5 minutes of activity
+      expiresIn: 60 * 60 * 24 * 7, // 7 days in seconds
+      updateAge: 60 * 60 * 24, // Update session once per day of activity
+      cookieCache: {
+        enabled: true,
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      },
     },
     emailAndPassword: {
       enabled: true,

@@ -6,11 +6,12 @@ import { useRouter, usePathname } from "next/navigation";
 
 /**
  * Session Monitor component
- * Checks session status periodically and redirects to login if expired
+ * Monitors for explicit session errors/expiry rather than polling
  */
 export function SessionMonitor() {
   const router = useRouter();
   const pathname = usePathname();
+  const { data: session, error } = authClient.useSession();
 
   useEffect(() => {
     // Public routes that don't need auth
@@ -19,29 +20,26 @@ export function SessionMonitor() {
       pathname.startsWith(route)
     );
 
-    // Don't check session on public routes
-    if (isPublicRoute) {
-      return;
+    // Only redirect if there's an explicit error and we're on a protected route
+    if (error && !isPublicRoute) {
+      console.log("Session error detected, redirecting to login:", error);
+      router.push("/login");
     }
 
-    // Check session every 2 minutes
-    const interval = setInterval(async () => {
-      try {
-        const { data: session } = authClient.useSession.getState
-          ? authClient.useSession.getState()
-          : { data: null };
-
-        // If no session and on protected route, redirect to login
+    // Also check if session is explicitly null (logged out) on protected routes
+    // But only after initial load to avoid race conditions
+    if (session === null && !isPublicRoute && typeof window !== "undefined") {
+      // Small delay to avoid race condition during initial load
+      const timeout = setTimeout(() => {
         if (!session && !isPublicRoute) {
+          console.log("No session found on protected route, redirecting");
           router.push("/login");
         }
-      } catch (error) {
-        console.error("Session check error:", error);
-      }
-    }, 120 * 1000); // Check every 2 minutes
+      }, 1000);
 
-    return () => clearInterval(interval);
-  }, [router, pathname]);
+      return () => clearTimeout(timeout);
+    }
+  }, [session, error, router, pathname]);
 
   return null;
 }
