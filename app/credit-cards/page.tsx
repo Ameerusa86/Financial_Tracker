@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,48 +20,36 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
-
-const creditCards = [
-  {
-    id: 1,
-    name: "Chase Sapphire Preferred",
-    lastFour: "4523",
-    balance: 1200,
-    limit: 10000,
-    dueDate: new Date("2024-12-05"),
-    minPayment: 35,
-    interestRate: 18.99,
-    rewards: "2x points on travel",
-  },
-  {
-    id: 2,
-    name: "American Express Blue Cash",
-    lastFour: "8901",
-    balance: 650,
-    limit: 5000,
-    dueDate: new Date("2024-12-10"),
-    minPayment: 25,
-    interestRate: 15.99,
-    rewards: "3% cash back on groceries",
-  },
-  {
-    id: 3,
-    name: "Capital One Quicksilver",
-    lastFour: "2367",
-    balance: 450,
-    limit: 8000,
-    dueDate: new Date("2024-12-15"),
-    minPayment: 25,
-    interestRate: 19.99,
-    rewards: "1.5% cash back on all purchases",
-  },
-];
+import { AccountStorage } from "@/lib/storage";
+import { Account } from "@/lib/types";
+import Link from "next/link";
 
 export default function CreditCardsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [creditCards, setCreditCards] = useState<Account[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadCreditCards = async () => {
+      try {
+        const accounts = await AccountStorage.getAll();
+        const cards = accounts.filter((acc) => acc.type === "credit");
+        setCreditCards(cards);
+      } catch (error) {
+        console.error("Failed to load credit cards:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadCreditCards();
+  }, []);
+
   const totalBalance = creditCards.reduce((sum, card) => sum + card.balance, 0);
-  const totalLimit = creditCards.reduce((sum, card) => sum + card.limit, 0);
-  const utilizationRate = (totalBalance / totalLimit) * 100;
+  const totalLimit = creditCards.reduce(
+    (sum, card) => sum + (card.creditLimit || 0),
+    0
+  );
+  const utilizationRate = totalLimit > 0 ? (totalBalance / totalLimit) * 100 : 0;
 
   return (
     <div className="space-y-8">
@@ -177,111 +165,164 @@ export default function CreditCardsPage() {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {creditCards.map((card) => {
-          const utilization = (card.balance / card.limit) * 100;
-          const daysUntilDue = Math.ceil(
-            (card.dueDate.getTime() - new Date().getTime()) /
-              (1000 * 60 * 60 * 24)
-          );
-
-          return (
-            <Card key={card.id} className="overflow-hidden">
-              <div className="bg-gradient-to-br from-blue-600 to-purple-600 p-6 text-white">
-                <div className="flex items-start justify-between mb-8">
-                  <CreditCard className="h-8 w-8" />
-                  <Badge
-                    variant="secondary"
-                    className="bg-white/20 text-white hover:bg-white/30"
-                  >
-                    {card.rewards}
-                  </Badge>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm opacity-80">
-                    •••• •••• •••• {card.lastFour}
-                  </p>
-                  <p className="text-xl font-bold">{card.name}</p>
-                </div>
-              </div>
-
-              <CardContent className="p-6 space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      Balance
-                    </span>
-                    <span className="font-bold text-orange-600">
-                      {formatCurrency(card.balance)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      Credit Limit
-                    </span>
-                    <span className="font-medium">
-                      {formatCurrency(card.limit)}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full ${
-                        utilization > 70
-                          ? "bg-red-600"
-                          : utilization > 30
-                          ? "bg-yellow-600"
-                          : "bg-green-600"
-                      }`}
-                      style={{ width: `${Math.min(utilization, 100)}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {utilization.toFixed(1)}% utilized
-                  </p>
-                </div>
-
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                      <Calendar className="h-4 w-4" />
-                      Due Date
-                    </div>
-                    <span className="font-medium">
-                      {formatDate(card.dueDate)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      Min Payment
-                    </span>
-                    <span className="font-medium">
-                      {formatCurrency(card.minPayment)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      APR
-                    </span>
-                    <span className="font-medium">{card.interestRate}%</span>
-                  </div>
-                  {daysUntilDue <= 7 && (
-                    <Badge
-                      variant="destructive"
-                      className="w-full justify-center"
-                    >
-                      Due in {daysUntilDue} days
-                    </Badge>
-                  )}
-                </div>
-
-                <Button className="w-full" variant="outline">
-                  Make Payment
+      {isLoading ? (
+        <div className="text-center py-12 text-muted-foreground">
+          Loading credit cards...
+        </div>
+      ) : creditCards.length === 0 ? (
+        <Card className="p-12">
+          <div className="text-center space-y-4">
+            <CreditCard className="h-16 w-16 mx-auto text-muted-foreground" />
+            <div>
+              <h3 className="text-lg font-semibold mb-2">
+                No Credit Cards Yet
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                Add your credit cards to track balances and utilization
+              </p>
+              <Link href="/accounts">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Credit Card
                 </Button>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+              </Link>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {creditCards.map((card) => {
+            const utilization = card.creditLimit
+              ? (card.balance / card.creditLimit) * 100
+              : 0;
+            const daysUntilDue = card.dueDay
+              ? (() => {
+                  const today = new Date();
+                  const currentMonth = today.getMonth();
+                  const currentYear = today.getFullYear();
+                  let dueDate = new Date(
+                    currentYear,
+                    currentMonth,
+                    card.dueDay
+                  );
+                  if (dueDate < today) {
+                    dueDate = new Date(
+                      currentYear,
+                      currentMonth + 1,
+                      card.dueDay
+                    );
+                  }
+                  return Math.ceil(
+                    (dueDate.getTime() - today.getTime()) /
+                      (1000 * 60 * 60 * 24)
+                  );
+                })()
+              : null;
+
+            return (
+              <Card key={card.id} className="overflow-hidden">
+                <div className="bg-linear-to-br from-blue-600 to-purple-600 p-6 text-white">
+                  <div className="flex items-start justify-between mb-8">
+                    <CreditCard className="h-8 w-8" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xl font-bold">{card.name}</p>
+                  </div>
+                </div>
+
+                <CardContent className="p-6 space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Balance
+                      </span>
+                      <span className="font-bold text-orange-600">
+                        {formatCurrency(card.balance)}
+                      </span>
+                    </div>
+                    {card.creditLimit && (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Credit Limit
+                          </span>
+                          <span className="font-medium">
+                            {formatCurrency(card.creditLimit)}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full ${
+                              utilization > 70
+                                ? "bg-red-600"
+                                : utilization > 30
+                                ? "bg-yellow-600"
+                                : "bg-green-600"
+                            }`}
+                            style={{ width: `${Math.min(utilization, 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {utilization.toFixed(1)}% utilized
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                    {card.dueDay && (
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                          <Calendar className="h-4 w-4" />
+                          Due Day
+                        </div>
+                        <span className="font-medium">Day {card.dueDay}</span>
+                      </div>
+                    )}
+                    {card.minPayment && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Min Payment
+                        </span>
+                        <span className="font-medium">
+                          {formatCurrency(card.minPayment)}
+                        </span>
+                      </div>
+                    )}
+                    {card.apr && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          APR
+                        </span>
+                        <span className="font-medium">{card.apr}%</span>
+                      </div>
+                    )}
+                    {daysUntilDue !== null && daysUntilDue <= 7 && (
+                      <Badge
+                        variant="destructive"
+                        className="w-full justify-center"
+                      >
+                        Due in {daysUntilDue} days
+                      </Badge>
+                    )}
+                    {card.website && (
+                      <a
+                        href={card.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button className="w-full" variant="outline" size="sm">
+                          Visit Website
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
