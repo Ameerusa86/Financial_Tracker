@@ -65,6 +65,40 @@ export default function ReportsPage() {
     net: inc.value - (expenseTotals[i]?.value || 0),
   }));
 
+  // Derived metrics for Income vs Expenses
+  const totalIncome = incomeVsExpenseData.reduce((s, r) => s + r.income, 0);
+  const totalExpenses = incomeVsExpenseData.reduce((s, r) => s + r.expenses, 0);
+  const totalNet = incomeVsExpenseData.reduce((s, r) => s + r.net, 0);
+  const avgIncome = incomeVsExpenseData.length
+    ? totalIncome / incomeVsExpenseData.length
+    : 0;
+  const avgExpenses = incomeVsExpenseData.length
+    ? totalExpenses / incomeVsExpenseData.length
+    : 0;
+  const avgNet = incomeVsExpenseData.length ? totalNet / incomeVsExpenseData.length : 0;
+
+  // Spending trends metrics
+  const highestSpending = expenseTotals.reduce(
+    (max, e) => (e.value > max.value ? e : max),
+    { label: "-", value: 0 }
+  );
+  const avgSpending = expenseTotals.length
+    ? expenseTotals.reduce((s, e) => s + e.value, 0) / expenseTotals.length
+    : 0;
+  const lastTwo = expenseTotals.slice(-2);
+  const recentChange =
+    lastTwo.length === 2 ? lastTwo[1].value - lastTwo[0].value : 0;
+
+  // Category breakdown current month (last element)
+  const latestCategories = categorySeries[categorySeries.length - 1]?.categoryTotals || {};
+  const categoryTotalSum = Object.values(latestCategories).reduce(
+    (s: number, v: number) => s + v,
+    0
+  );
+  const topCategories = Object.entries(latestCategories)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
   // Transform category series for stacked view
   const allCategories = Array.from(
     new Set(categorySeries.flatMap((p) => Object.keys(p.categoryTotals)))
@@ -110,16 +144,26 @@ export default function ReportsPage() {
       </div>
 
       <Tabs defaultValue="income-expenses" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="income-expenses">Income vs Expenses</TabsTrigger>
-          <TabsTrigger value="spending">Spending Trends</TabsTrigger>
-          <TabsTrigger value="categories">Category Breakdown</TabsTrigger>
-          <TabsTrigger value="net-worth">Net Worth</TabsTrigger>
-          <TabsTrigger value="savings">Savings Rate</TabsTrigger>
-          <TabsTrigger value="export">Export</TabsTrigger>
+        <TabsList className="flex flex-wrap gap-2 bg-transparent p-0">
+          {[
+            ["income-expenses", "Income vs Expenses"],
+            ["spending", "Spending Trends"],
+            ["categories", "Category Breakdown"],
+            ["net-worth", "Net Worth"],
+            ["savings", "Savings Rate"],
+            ["export", "Export"],
+          ].map(([val, label]) => (
+            <TabsTrigger
+              key={val}
+              value={val}
+              className="data-[state=active]:bg-blue-600/90 data-[state=active]:text-white data-[state=inactive]:bg-gray-900/60 data-[state=inactive]:text-gray-300 px-4 py-2 rounded-md text-sm font-medium shadow-sm hover:bg-blue-600/70 hover:text-white transition-colors border border-gray-700"
+            >
+              {label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        <TabsContent value="income-expenses" className="space-y-4">
+        <TabsContent value="income-expenses" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -160,9 +204,21 @@ export default function ReportsPage() {
               )}
             </CardContent>
           </Card>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <MetricBox label="Total Income" value={totalIncome} color="text-blue-500" />
+            <MetricBox label="Total Expenses" value={totalExpenses} color="text-rose-500" />
+            <MetricBox label="Total Net" value={totalNet} color="text-emerald-500" />
+            <MetricBox label="Avg Monthly Income" value={avgIncome} color="text-blue-400" />
+            <MetricBox label="Avg Monthly Expenses" value={avgExpenses} color="text-rose-400" />
+            <MetricBox label="Avg Monthly Net" value={avgNet} color="text-emerald-400" />
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Net is estimated using pay schedule typical amounts minus recorded expenses.
+            Actual income tracking will refine these numbers in a future phase.
+          </p>
         </TabsContent>
 
-        <TabsContent value="spending" className="space-y-4">
+        <TabsContent value="spending" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -190,9 +246,17 @@ export default function ReportsPage() {
               )}
             </CardContent>
           </Card>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <MetricBox label="Highest Month" value={highestSpending.value} color="text-rose-500" />
+            <MetricBox label="Average Monthly" value={avgSpending} color="text-rose-400" />
+            <MetricBox label="Recent Change" value={recentChange} color={recentChange >= 0 ? "text-rose-300" : "text-emerald-400"} />
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Recent change compares the last two months. Negative indicates improvement (lower spending).
+          </p>
         </TabsContent>
 
-        <TabsContent value="categories" className="space-y-4">
+        <TabsContent value="categories" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -223,6 +287,30 @@ export default function ReportsPage() {
               )}
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Top Categories (Current Month)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {topCategories.length === 0 && (
+                <div className="text-sm text-gray-500">No category data yet.</div>
+              )}
+              {topCategories.map(([cat, val]) => {
+                const pct = categoryTotalSum ? (val / categoryTotalSum) * 100 : 0;
+                return (
+                  <div key={cat} className="flex items-center justify-between text-sm">
+                    <span className="capitalize text-gray-300">{cat}</span>
+                    <span className="text-gray-400">
+                      {formatCurrency(val)} · {pct.toFixed(1)}%
+                    </span>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Percentages represent each category's share of this month's total recorded expenses.
+          </p>
         </TabsContent>
 
         <TabsContent value="net-worth" className="space-y-4">
@@ -281,7 +369,7 @@ export default function ReportsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="export" className="space-y-4">
+        <TabsContent value="export" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -291,9 +379,15 @@ export default function ReportsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Export aggregated data as CSV for external analysis. PDF &
-                  advanced export formats will be added in a later phase.
+                  Export aggregated analytics as CSV for spreadsheets or BI tools. Columns are
+                  pre-formatted with two-decimal precision. Additional formats (PDF, XLSX) will
+                  be added later.
                 </p>
+                <ul className="text-xs text-gray-500 list-disc pl-5 space-y-1">
+                  <li>Income vs Expenses: Month, Income, Expenses, Net.</li>
+                  <li>Category Trends: Month plus one column per category.</li>
+                  <li>Use in Excel / Google Sheets for deeper pivot analysis.</li>
+                </ul>
                 <div className="flex flex-wrap gap-3">
                   <Button variant="outline" onClick={exportIncomeVsExpense}>
                     Income vs Expenses CSV
