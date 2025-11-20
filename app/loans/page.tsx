@@ -151,7 +151,6 @@ export default function LoansPage() {
             <p className="text-xs text-muted-foreground">Total per month</p>
           </CardContent>
         </Card>
-
       </div>
 
       {isLoading ? (
@@ -273,7 +272,11 @@ export default function LoansPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <Button variant="outline" size="sm" className="w-full">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                          >
                             Visit Website
                           </Button>
                         </a>

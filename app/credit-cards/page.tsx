@@ -49,7 +49,8 @@ export default function CreditCardsPage() {
     (sum, card) => sum + (card.creditLimit || 0),
     0
   );
-  const utilizationRate = totalLimit > 0 ? (totalBalance / totalLimit) * 100 : 0;
+  const utilizationRate =
+    totalLimit > 0 ? (totalBalance / totalLimit) * 100 : 0;
 
   return (
     <div className="space-y-8">
@@ -256,8 +257,8 @@ export default function CreditCardsPage() {
                               utilization > 70
                                 ? "bg-red-600"
                                 : utilization > 30
-                                ? "bg-yellow-600"
-                                : "bg-green-600"
+                                  ? "bg-yellow-600"
+                                  : "bg-green-600"
                             }`}
                             style={{ width: `${Math.min(utilization, 100)}%` }}
                           />
