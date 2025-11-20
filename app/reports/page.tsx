@@ -147,7 +147,7 @@ export default function ReportsPage() {
       </div>
 
       <Tabs defaultValue="income-expenses" className="space-y-6">
-        <TabsList className="flex flex-wrap gap-2 bg-transparent p-0">
+        <TabsList className="flex flex-wrap gap-2 bg-transparent p-0 mb-14 sm:mb-8">
           {[
             ["income-expenses", "Income vs Expenses"],
             ["spending", "Spending Trends"],
@@ -167,14 +167,14 @@ export default function ReportsPage() {
         </TabsList>
 
         <TabsContent value="income-expenses" className="space-y-6">
-          <Card>
+          <Card className="mt-8 sm:mt-0">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <LineChart className="h-5 w-5 text-blue-500" /> Income vs
                 Expenses (Last {MONTH_WINDOW} Months)
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-80">
+            <CardContent className="h-[300px] sm:h-80">
               {mounted && (
                 <ResponsiveContainer width="100%" height="100%">
                   <ReLineChart data={incomeVsExpenseData}>
@@ -254,7 +254,7 @@ export default function ReportsPage() {
                 Expense Totals
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-80">
+            <CardContent className="h-[300px] sm:h-80">
               {mounted && (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -305,7 +305,7 @@ export default function ReportsPage() {
                 Breakdown (Stacked)
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-96">
+            <CardContent className="h-80 sm:h-96">
               {mounted && (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={categoryChartData}>
