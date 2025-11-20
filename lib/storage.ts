@@ -8,6 +8,7 @@ import type {
   PaySchedule,
   PayPeriod,
   PlannedPayment,
+  Transaction,
 } from "./types";
 
 /**
@@ -584,6 +585,151 @@ export const PlannedPaymentStorage = {
       console.error("Error deleting planned payment:", error);
       return false;
     }
+  },
+};
+
+/**
+ * Transaction management helpers
+ */
+export const TransactionStorage = {
+  /**
+   * Get all transactions with optional filters
+   */
+  async getAll(filters?: {
+    type?: string;
+    fromAccountId?: string;
+    toAccountId?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<Transaction[]> {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.type) params.append("type", filters.type);
+      if (filters?.fromAccountId)
+        params.append("fromAccountId", filters.fromAccountId);
+      if (filters?.toAccountId)
+        params.append("toAccountId", filters.toAccountId);
+      if (filters?.startDate) params.append("startDate", filters.startDate);
+      if (filters?.endDate) params.append("endDate", filters.endDate);
+
+      const url = `/api/transactions${params.toString() ? `?${params.toString()}` : ""}`;
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      return await res.json();
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      return [];
+    }
+  },
+
+  /**
+   * Get a single transaction by ID
+   */
+  async getById(id: string): Promise<Transaction | null> {
+    try {
+      const res = await fetch(`/api/transactions/${id}`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (error) {
+      console.error("Error fetching transaction:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Add a new transaction
+   */
+  async add(
+    transaction: Omit<Transaction, "id" | "userId" | "createdAt" | "updatedAt">
+  ): Promise<Transaction | null> {
+    try {
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(transaction),
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (error) {
+      console.error("Error adding transaction:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Update an existing transaction
+   */
+  async update(
+    id: string,
+    updates: Partial<
+      Omit<Transaction, "id" | "userId" | "createdAt" | "updatedAt">
+    >
+  ): Promise<Transaction | null> {
+    try {
+      const res = await fetch(`/api/transactions/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Delete a transaction
+   */
+  async delete(id: string): Promise<boolean> {
+    try {
+      const res = await fetch(`/api/transactions/${id}`, {
+        method: "DELETE",
+      });
+      return res.ok;
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      return false;
+    }
+  },
+
+  /**
+   * Get transactions by account (from or to)
+   */
+  async getByAccount(accountId: string): Promise<Transaction[]> {
+    try {
+      const [fromTransactions, toTransactions] = await Promise.all([
+        this.getAll({ fromAccountId: accountId }),
+        this.getAll({ toAccountId: accountId }),
+      ]);
+      // Combine and remove duplicates
+      const allTransactions = [...fromTransactions, ...toTransactions];
+      const uniqueMap = new Map(allTransactions.map((t) => [t.id, t]));
+      return Array.from(uniqueMap.values()).sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+    } catch (error) {
+      console.error("Error fetching account transactions:", error);
+      return [];
+    }
+  },
+
+  /**
+   * Get transactions for a date range
+   */
+  async getByDateRange(
+    startDate: string,
+    endDate: string
+  ): Promise<Transaction[]> {
+    return this.getAll({ startDate, endDate });
+  },
+
+  /**
+   * Get transactions by type
+   */
+  async getByType(type: string): Promise<Transaction[]> {
+    return this.getAll({ type });
   },
 };
 

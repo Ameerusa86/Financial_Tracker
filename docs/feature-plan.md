@@ -1,11 +1,42 @@
 # Feature Plan & Tickets
 
-Derived from current workflow:
+## Real-World Workflow → App Flow
 
-- Paid every 2 weeks
-- Open credit card/loan sites, check balances, then pay
-- Choose payment amounts based on balances
-- Track income, expenses, due dates, and payments
+### The Core Flow (Biweekly Payday Cycle)
+
+**🪙 Step 1: Paychecks arrive**
+
+- Both spouses get paid every 2 weeks into separate checking accounts
+- App creates `income_deposit` Transactions for each paycheck
+- Checking account balances update automatically
+- PayPeriod model links deposits to specific accounts via `depositAccountId`
+
+**🧾 Step 2: Payday session - divvy up the money**
+
+- Sit together and review all credit cards, loans, and bills
+- See current balances (updated in real-time from daily spending)
+- Decide payment amounts for each account
+- Choose which checking account pays which debt (his vs hers)
+- Execute all payments in one batch:
+  - Creates payment Transactions
+  - Checking balances decrease
+  - Credit card/loan balances decrease
+  - PlannedPayments marked as executed
+
+**🧺 Step 3: Daily credit card usage**
+
+- Use credit cards for all daily expenses (groceries, gas, dining, etc.)
+- Each expense creates a Transaction that increases card balance
+- Card balances always reflect reality
+- By next payday, planner shows true current balances for decision-making
+
+### Key Requirements
+
+- **Multiple income streams**: Support 2+ PaySchedules per user (his + hers)
+- **Multi-account payments**: Choose which checking account funds each payment
+- **Real-time balances**: Daily expenses update card balances immediately
+- **Batch payment execution**: Execute multiple planned payments in one session
+- **Flexible planning**: Adjust planned amounts based on current reality
 
 Branch naming: `feature/<kebab-case-feature>`
 
@@ -30,23 +61,263 @@ The following features have been fully implemented and merged:
 
 ---
 
-## 🚀 Phase 2: Enhancement & Polish (CURRENT PHASE)
+## 🚀 Phase 2: Transaction System & Core Payment Flow (CURRENT PHASE)
 
-### Priority Features:
+### Transaction System Foundation
+
+This phase implements the Transaction model and wires it into the core payment workflow to support the real-world biweekly payday cycle.
+
+**Priority 1: Transaction Model & API** ⚠️ CRITICAL
+
+- Create Transaction model (Mongoose schema)
+- Transaction types: `income_deposit`, `payment`, `expense`, `transfer`, `adjustment`
+- API routes: GET /api/transactions, POST, GET/PUT/DELETE /api/transactions/[id]
+- Link to accounts via `fromAccountId` and `toAccountId`
+- Automatically update account balances on transaction creation/deletion
+
+**Priority 2: Payday Session UI** ⚠️ CRITICAL
+
+- New page: `/payday` or `/pay-run`
+- Step 1: Record income deposits
+  - Show upcoming PayPeriods for both spouses
+  - "Record Deposit" button creates `income_deposit` Transaction
+  - Updates checking account balances automatically
+- Step 2: Review & adjust planned payments
+  - Display all credit cards/loans with current balances
+  - Show recommended payments from PlannedPayment model
+  - Allow adjustment of amounts per account
+  - Choose which checking account (his/hers) funds each payment
+  - Add ad-hoc payments not in the plan
+- Step 3: Execute all payments in batch
+  - "Execute All Payments" button
+  - Creates payment Transaction for each
+  - Updates checking balances (decrease) and credit/loan balances (decrease)
+  - Marks PlannedPayments as executed with `executedAt` and `transactionId`
+- Step 4: Summary view
+  - Total income deposited
+  - Total paid to debts
+  - Remaining balance in each checking account
+
+**Priority 3: Multiple PaySchedules per User**
+
+- Update PaySchedule to support multiple schedules per user
+- Add optional `owner` field: "self" | "spouse" | free-text name
+- Each schedule maps to specific `depositAccountId` (his checking vs hers)
+- UI to manage multiple income sources on `/income` page
+
+**Priority 4: Real-Time Balance Updates**
+
+- Recalculate account balances from Transactions on page load
+- Payment Planner uses current balances, not static values
+- Show: "Planned Payment" vs "Current Balance" vs "Remaining After Payment"
+- Quick actions: "Pay Minimum", "Pay Off Fully", "Custom Amount"
+
+**Priority 5: Expense Auto-Transaction** (Bump from Phase 6)
+
+- When creating/editing an Expense, automatically create a Transaction
+- Transaction type: `expense`
+- `fromAccountId`: the credit card account
+- Updates card balance immediately (increases debt)
+- Manual expense entry on `/expenses` page
+- Card balances always reflect daily spending
+
+---
+
+## 🎨 Phase 3: Enhancement & Polish
+
+### Priority Features
 
 **1. Data Migration Utility** (URGENT - for existing localStorage users)
 **2. Settings Page** (Types Ready)
 **3. Import/Export UI** (Backend Ready)
 
-### Enhancement Opportunities:
+### Enhancement Opportunities
 
-**4. Enhanced Expense Tracking**
-**5. Debt Payoff Strategies**
-**6. Reports & Analytics**
-**7. Mobile Responsiveness**
-**8. Data Backup & Sync**
+**4. Enhanced Expense Tracking** (CSV import, receipt upload, tags)
+**5. Debt Payoff Strategies** (Snowball/Avalanche calculators)
+**6. Reports & Analytics** (Trends, insights, PDF export)
+**7. Mobile Responsiveness** (PWA, touch-optimized)
+**8. Data Backup & Sync** (Cloud storage integration)
 
 ---
+
+## 📋 Phase 2 Tickets: Transaction System & Payment Flow
+
+### Ticket: Transaction Model & API ⚠️ CRITICAL
+
+- Branch: `feature/transaction-model`
+- Status: 🔴 NOT STARTED
+- Priority: HIGHEST - Foundation for all payment flows
+- Goals: Create Transaction model and API to track all money movement.
+- Tasks:
+  - Create `Transaction` Mongoose model with schema:
+    - `userId` (string, required)
+    - `type`: `'income_deposit' | 'payment' | 'expense' | 'transfer' | 'adjustment'`
+    - `fromAccountId` (string, optional) - source account
+    - `toAccountId` (string, optional) - destination account
+    - `amount` (number, required)
+    - `date` (string, ISO format)
+    - `description` (string, optional)
+    - `category` (string, optional)
+    - `metadata` (object, optional) - for extensibility
+    - `createdAt`, `updatedAt` timestamps
+  - Create API routes:
+    - `GET /api/transactions` - list all for user, with filters (date range, type, account)
+    - `POST /api/transactions` - create new transaction
+    - `GET /api/transactions/[id]` - get single transaction
+    - `PUT /api/transactions/[id]` - update transaction
+    - `DELETE /api/transactions/[id]` - delete transaction
+  - Add transaction validation logic
+  - Export `TransactionStorage` helpers in `lib/storage.ts`
+- Acceptance:
+  - Transaction model properly typed in `lib/types.ts`
+  - All CRUD operations working
+  - Transactions queryable by account, date range, type
+
+### Ticket: Account Balance Calculation from Transactions
+
+- Branch: `feature/balance-calculation`
+- Status: 🔴 NOT STARTED
+- Depends on: `feature/transaction-model`
+- Goals: Calculate real-time account balances from transaction history.
+- Tasks:
+  - Add helper function `calculateAccountBalance(accountId: string, upToDate?: string)`
+  - Logic:
+    - Start with account's initial balance (or 0)
+    - For checking/savings: add income_deposits, subtract payments/expenses/transfers-out
+    - For credit cards/loans: add expenses/charges, subtract payments
+    - Support "balance as of date" for historical views
+  - Update `AccountStorage.getById()` to include calculated balance
+  - Add `/api/accounts/[id]/balance` endpoint for real-time balance
+  - Option to "sync" stored balance with calculated balance
+- Acceptance:
+  - Account balances reflect all transactions
+  - Historical balance queries work correctly
+  - Balance calculation handles all transaction types
+
+### Ticket: Payday Session UI ⚠️ CRITICAL
+
+- Branch: `feature/payday-session`
+- Status: 🔴 NOT STARTED
+- Depends on: `feature/transaction-model`, `feature/balance-calculation`
+- Priority: HIGH - Core user workflow
+- Goals: Create unified payday interface for recording income and executing payments.
+- Tasks:
+  - Create `/payday` page with multi-step flow:
+    - **Step 1: Record Income**
+      - List upcoming PayPeriods (both spouses if multiple schedules)
+      - Show expected amounts and deposit accounts
+      - "Record Deposit" button for each:
+        - Creates `income_deposit` Transaction
+        - Links to PayPeriod via `metadata.payPeriodId`
+        - Updates checking account balance
+      - Mark PayPeriod as received
+    - **Step 2: Review Accounts**
+      - Display all credit cards, loans, bills
+      - Show current balance (from Transactions)
+      - Show planned payment amount (from PlannedPayment)
+      - Show minimum payment if applicable
+      - Allow editing payment amount per account
+      - Dropdown to select source account (which checking)
+    - **Step 3: Execute Payments**
+      - Summary table of all planned payments
+      - Total amount to be paid
+      - Remaining balance per checking account after payments
+      - "Execute All" button:
+        - Creates `payment` Transaction for each
+        - Updates all account balances
+        - Marks PlannedPayments as executed
+        - Logs `executedAt` timestamp and `transactionId`
+      - Option to execute individually if needed
+    - **Step 4: Summary**
+      - Show total income received
+      - Total paid to debts
+      - Remaining balance per checking account
+      - Transaction history for this session
+  - Add date/pay-period selector for historical sessions
+  - Add ability to save draft allocations before executing
+- Acceptance:
+  - Can record multiple income deposits in one session
+  - Can adjust and execute multiple payments in batch
+  - All balances update correctly
+  - Session summary shows complete picture
+
+### Ticket: Multiple PaySchedules Support
+
+- Branch: `feature/multiple-payschedules`
+- Status: 🔴 NOT STARTED
+- Goals: Support multiple income sources per user (both spouses).
+- Tasks:
+  - Update PaySchedule model:
+    - Add `owner` field: optional string (e.g., "Ameer", "Wife", or null)
+    - Add `depositAccountId`: required - which checking account receives this income
+  - Update `/income` page:
+    - Allow creating multiple PaySchedules
+    - Show list of all schedules with owner labels
+    - Edit/delete per schedule
+  - Update PayPeriod generation to respect `depositAccountId`
+  - Update UI to clearly label which schedule is which
+- Acceptance:
+  - Can create 2+ pay schedules per user
+  - Each schedule maps to specific checking account
+  - Payday Session shows both income sources clearly
+
+### Ticket: Payment Planner Real-Time Balance Integration
+
+- Branch: `feature/planner-realtime-balance`
+- Status: 🔴 NOT STARTED
+- Depends on: `feature/balance-calculation`
+- Goals: Update Payment Planner to use current balances from Transactions.
+- Tasks:
+  - Update `/payment-planner` page:
+    - Fetch current balance per account from Transactions
+    - Display: "Current Balance", "Planned Payment", "Balance After Payment"
+    - Show difference: "Need $X more to pay off fully"
+  - Add quick action buttons:
+    - "Pay Minimum" - sets amount to minPayment
+    - "Pay Off Fully" - sets amount to current balance
+    - "Custom Amount" - user input
+  - Recalculate available funds based on current checking balances
+  - Warn if total planned payments exceed available funds
+  - Save updated plan to PlannedPayment records
+- Acceptance:
+  - Planner reflects real-time account balances
+  - Can quickly adjust payments based on current reality
+  - Validates against available checking balance
+
+### Ticket: Expense Auto-Transaction
+
+- Branch: `feature/expense-auto-transaction`
+- Status: 🔴 NOT STARTED
+- Depends on: `feature/transaction-model`
+- Goals: Automatically create Transaction when expense is added/edited.
+- Tasks:
+  - Update `POST /api/expenses`:
+    - After creating Expense, create Transaction:
+      - `type: 'expense'`
+      - `fromAccountId: expense.accountId`
+      - `amount: expense.amount`
+      - `date: expense.date`
+      - `description: expense.description`
+      - `category: expense.category`
+      - `metadata: { expenseId: expense.id }`
+    - Return both expense and transaction IDs
+  - Update `PUT /api/expenses/[id]`:
+    - Update corresponding Transaction (find by `metadata.expenseId`)
+    - Or create new if doesn't exist (for legacy expenses)
+  - Update `DELETE /api/expenses/[id]`:
+    - Also delete corresponding Transaction
+  - Update `/expenses` page:
+    - Show transaction link/status
+    - Indicate when expense affects account balance
+- Acceptance:
+  - Every expense creates a transaction automatically
+  - Credit card balances increase when expenses added
+  - Deleting expense removes transaction and adjusts balance
+
+---
+
+## 📋 Phase 3 Tickets: Enhancement & Polish
 
 ## Ticket: Import/Export UI
 
@@ -283,6 +554,70 @@ The following features have been fully implemented and merged:
 14. **Error Logging** - Integrate error tracking (Sentry, LogRocket)
 15. **E2E Tests** - Add Playwright tests for critical user flows
 16. **Storybook** - Component library for UI consistency
+
+---
+
+---
+
+## 🔄 Complete App Flow After Transaction System
+
+Once Phase 2 is complete, here's how the app mirrors your real-world biweekly payday cycle:
+
+### Payday (Every 2 Weeks)
+
+1. **Open `/payday` page**
+2. **Record income deposits:**
+   - Ameer's paycheck → Checking A (creates `income_deposit` Transaction)
+   - Wife's paycheck → Checking B (creates `income_deposit` Transaction)
+   - Both checking balances update automatically
+3. **Review & allocate payments:**
+   - See all credit cards/loans with current balances (from daily spending)
+   - Review recommended payments from planner
+   - Adjust amounts as needed
+   - Choose source account (Checking A or B) for each payment
+4. **Execute all payments:**
+   - Click "Execute All"
+   - App creates `payment` Transaction for each
+   - Checking accounts decrease
+   - Credit card/loan balances decrease
+   - PlannedPayments marked as executed
+5. **View summary:**
+   - Total income received: $X
+   - Total paid to debts: $Y
+   - Remaining in checking: $Z
+
+### Throughout the 2 Weeks (Daily Spending)
+
+1. **Daily credit card usage:**
+   - Log expenses manually on `/expenses` page
+   - Or import CSV later (Phase 3)
+2. **Each expense:**
+   - Creates `expense` Transaction automatically
+   - Credit card balance increases (debt goes up)
+   - Category tracked for reporting
+3. **Real-time balance updates:**
+   - All pages show current balances
+   - Dashboard reflects latest spending
+   - Calendar shows updated payment needs
+
+### Before Next Payday
+
+1. **Review in `/payment-planner`:**
+   - See current balances (updated from daily expenses)
+   - Adjust planned payments if needed
+   - Set priorities for next paycheck
+2. **On payday:**
+   - Return to `/payday` page
+   - Cycle repeats with fresh income and current balances
+
+### Key Benefits
+
+- ✅ Always know true account balances
+- ✅ Make informed payment decisions based on reality
+- ✅ Track all money movement in one place
+- ✅ Historical record of every transaction
+- ✅ Both spouses' income managed together
+- ✅ No more logging into 10+ bank/card websites
 
 ---
 

@@ -7,6 +7,7 @@ export interface IPaySchedule extends Document {
   nextPayDate: string;
   typicalAmount: number;
   depositAccountId?: string;
+  owner?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,12 +23,13 @@ const PayScheduleSchema = new Schema<IPaySchedule>(
     nextPayDate: { type: String, required: true },
     typicalAmount: { type: Number, required: true },
     depositAccountId: { type: String },
+    owner: { type: String },
   },
   { timestamps: true }
 );
 
-// Ensure one pay schedule per user
-PayScheduleSchema.index({ userId: 1 }, { unique: true });
+// Index for multiple schedules per user
+PayScheduleSchema.index({ userId: 1 });
 
 export default mongoose.models.PaySchedule ||
   mongoose.model<IPaySchedule>("PaySchedule", PayScheduleSchema);

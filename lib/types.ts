@@ -8,6 +8,7 @@ export interface PaySchedule {
   nextPayDate: string; // ISO date string
   typicalAmount: number;
   depositAccountId?: string; // Checking/Savings account where income is deposited
+  owner?: string; // Optional label: "self", "spouse", or custom name
   createdAt: string;
   updatedAt: string;
 }
@@ -89,7 +90,31 @@ export interface PlannedPayment {
   billId?: string;
   amount: number;
   note?: string;
+  executedAt?: string; // ISO date string when payment was executed
+  transactionId?: string; // Link to Transaction that executed this payment
   createdAt: string;
+}
+
+export type TransactionType =
+  | "income_deposit"
+  | "payment"
+  | "expense"
+  | "transfer"
+  | "adjustment";
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  type: TransactionType;
+  fromAccountId?: string; // Source account (optional for income_deposit)
+  toAccountId?: string; // Destination account (optional for expense)
+  amount: number;
+  date: string; // ISO date string
+  description?: string;
+  category?: string;
+  metadata?: Record<string, any>; // For extensibility (e.g., payPeriodId, expenseId)
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AppSettings {

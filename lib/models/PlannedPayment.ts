@@ -7,6 +7,8 @@ export interface IPlannedPayment extends Document {
   billId?: string;
   amount: number;
   note?: string;
+  executedAt?: string;
+  transactionId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,6 +21,8 @@ const PlannedPaymentSchema = new Schema<IPlannedPayment>(
     billId: { type: String },
     amount: { type: Number, required: true },
     note: { type: String },
+    executedAt: { type: String },
+    transactionId: { type: String },
   },
   { timestamps: true }
 );
