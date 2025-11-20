@@ -26,7 +26,7 @@ export default function IncomePage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  
+
   // Form state
   const [owner, setOwner] = useState("");
   const [frequency, setFrequency] = useState<PayFrequency>("bi-weekly");
@@ -46,7 +46,7 @@ export default function IncomePage() {
     ]);
 
     setSchedules(allSchedules);
-    
+
     const bankAccounts = allAccounts.filter(
       (acc) => acc.type === "checking" || acc.type === "savings"
     );
@@ -77,7 +77,7 @@ export default function IncomePage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this pay schedule?")) return;
-    
+
     const success = await PayScheduleStorage.delete(id);
     if (success) {
       await loadData();
@@ -158,7 +158,8 @@ export default function IncomePage() {
           <div>
             <h1 className="text-3xl font-bold mb-2">Income Schedules</h1>
             <p className="text-muted-foreground">
-              Set up pay schedules for all income sources (yours and your spouse&apos;s)
+              Set up pay schedules for all income sources (yours and your
+              spouse&apos;s)
             </p>
           </div>
           {!showForm && (
@@ -255,7 +256,8 @@ export default function IncomePage() {
                 )}
                 {isVariableAmount && (
                   <p className="text-sm text-muted-foreground">
-                    For variable pay, you&apos;ll enter the actual amount during the payday session
+                    For variable pay, you&apos;ll enter the actual amount during
+                    the payday session
                   </p>
                 )}
               </div>
@@ -377,8 +379,9 @@ export default function IncomePage() {
                         Deposit Account
                       </h4>
                       <p className="text-sm text-muted-foreground">
-                        {accounts.find((a) => a.id === schedule.depositAccountId)
-                          ?.name || "Unknown Account"}
+                        {accounts.find(
+                          (a) => a.id === schedule.depositAccountId
+                        )?.name || "Unknown Account"}
                       </p>
                     </div>
                   )}

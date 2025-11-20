@@ -30,6 +30,37 @@ export const ExpenseStorage = {
   },
 
   /**
+   * Backfill helper: preview missing transaction count
+   */
+  async getBackfillStatus(): Promise<{
+    total: number;
+    missingCount: number;
+  } | null> {
+    try {
+      const res = await fetch("/api/expenses/backfill");
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (error) {
+      console.error("Error checking backfill status:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Backfill helper: create missing transactions for expenses
+   */
+  async backfillTransactions(): Promise<{ created: number } | null> {
+    try {
+      const res = await fetch("/api/expenses/backfill", { method: "POST" });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (error) {
+      console.error("Error backfilling transactions:", error);
+      return null;
+    }
+  },
+
+  /**
    * Get a single expense by ID
    */
   async getById(id: string): Promise<Expense | null> {
