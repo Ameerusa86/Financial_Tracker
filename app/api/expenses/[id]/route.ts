@@ -10,14 +10,15 @@ import dbConnect from "@/lib/mongoose";
 // GET /api/expenses/[id] - Get single expense
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthenticatedUser(req);
   if (!userId) return unauthorizedResponse();
 
   try {
     await dbConnect();
-    const expense = await Expense.findOne({ _id: params.id, userId }).lean();
+    const { id } = await params;
+    const expense = await Expense.findOne({ _id: id, userId }).lean();
 
     if (!expense) {
       return NextResponse.json({ error: "Expense not found" }, { status: 404 });
@@ -53,7 +54,7 @@ export async function GET(
 // PUT /api/expenses/[id] - Update expense
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthenticatedUser(req);
   if (!userId) return unauthorizedResponse();
@@ -61,9 +62,10 @@ export async function PUT(
   try {
     await dbConnect();
     const body = await req.json();
+    const { id } = await params;
 
     const expense = await Expense.findOneAndUpdate(
-      { _id: params.id, userId },
+      { _id: id, userId },
       {
         date: body.date,
         amount: body.amount,
@@ -98,14 +100,15 @@ export async function PUT(
 // DELETE /api/expenses/[id] - Delete expense
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthenticatedUser(req);
   if (!userId) return unauthorizedResponse();
 
   try {
     await dbConnect();
-    const result = await Expense.deleteOne({ _id: params.id, userId });
+    const { id } = await params;
+    const result = await Expense.deleteOne({ _id: id, userId });
 
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Expense not found" }, { status: 404 });

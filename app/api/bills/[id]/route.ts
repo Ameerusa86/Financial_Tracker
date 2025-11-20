@@ -9,14 +9,15 @@ import dbConnect from "@/lib/mongoose";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthenticatedUser(req);
   if (!userId) return unauthorizedResponse();
 
   try {
     await dbConnect();
-    const bill = await Bill.findOne({ _id: params.id, userId }).lean();
+    const { id } = await params;
+    const bill = await Bill.findOne({ _id: id, userId }).lean();
 
     if (!bill) {
       return NextResponse.json({ error: "Bill not found" }, { status: 404 });
@@ -57,7 +58,7 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthenticatedUser(req);
   if (!userId) return unauthorizedResponse();
@@ -65,9 +66,10 @@ export async function PUT(
   try {
     await dbConnect();
     const body = await req.json();
+    const { id } = await params;
 
     const bill = await Bill.findOneAndUpdate(
-      { _id: params.id, userId },
+      { _id: id, userId },
       {
         name: body.name,
         amount: body.amount,
@@ -106,14 +108,15 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthenticatedUser(req);
   if (!userId) return unauthorizedResponse();
 
   try {
     await dbConnect();
-    const result = await Bill.deleteOne({ _id: params.id, userId });
+    const { id } = await params;
+    const result = await Bill.deleteOne({ _id: id, userId });
 
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Bill not found" }, { status: 404 });

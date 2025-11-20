@@ -10,14 +10,15 @@ import dbConnect from "@/lib/mongoose";
 // GET /api/accounts/[id]
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthenticatedUser(req);
   if (!userId) return unauthorizedResponse();
 
   try {
     await dbConnect();
-    const account = await Account.findOne({ _id: params.id, userId }).lean();
+    const { id } = await params;
+    const account = await Account.findOne({ _id: id, userId }).lean();
 
     if (!account) {
       return NextResponse.json({ error: "Account not found" }, { status: 404 });
@@ -61,7 +62,7 @@ export async function GET(
 // PUT /api/accounts/[id]
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthenticatedUser(req);
   if (!userId) return unauthorizedResponse();
@@ -69,9 +70,10 @@ export async function PUT(
   try {
     await dbConnect();
     const body = await req.json();
+    const { id } = await params;
 
     const account = await Account.findOneAndUpdate(
-      { _id: params.id, userId },
+      { _id: id, userId },
       {
         name: body.name,
         type: body.type,
@@ -113,14 +115,15 @@ export async function PUT(
 // DELETE /api/accounts/[id]
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthenticatedUser(req);
   if (!userId) return unauthorizedResponse();
 
   try {
     await dbConnect();
-    const result = await Account.deleteOne({ _id: params.id, userId });
+    const { id } = await params;
+    const result = await Account.deleteOne({ _id: id, userId });
 
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Account not found" }, { status: 404 });

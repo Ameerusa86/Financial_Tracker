@@ -9,15 +9,16 @@ import dbConnect from "@/lib/mongoose";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthenticatedUser(req);
   if (!userId) return unauthorizedResponse();
 
   try {
     await dbConnect();
+    const { id } = await params;
     const payment = await PlannedPayment.findOne({
-      _id: params.id,
+      _id: id,
       userId,
     }).lean();
 
@@ -57,7 +58,7 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthenticatedUser(req);
   if (!userId) return unauthorizedResponse();
@@ -65,9 +66,10 @@ export async function PUT(
   try {
     await dbConnect();
     const body = await req.json();
+    const { id } = await params;
 
     const payment = await PlannedPayment.findOneAndUpdate(
-      { _id: params.id, userId },
+      { _id: id, userId },
       {
         payPeriodId: body.payPeriodId,
         accountId: body.accountId,
@@ -104,14 +106,15 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = await getAuthenticatedUser(req);
   if (!userId) return unauthorizedResponse();
 
   try {
     await dbConnect();
-    const result = await PlannedPayment.deleteOne({ _id: params.id, userId });
+    const { id } = await params;
+    const result = await PlannedPayment.deleteOne({ _id: id, userId });
 
     if (result.deletedCount === 0) {
       return NextResponse.json(
