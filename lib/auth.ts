@@ -19,6 +19,10 @@ export const auth = (async () => {
     baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
     secret: required("BETTER_AUTH_SECRET"),
     database: mongodbAdapter(db, { client }),
+    session: {
+      expiresIn: 60 * 30, // 30 minutes in seconds
+      updateAge: 60 * 5, // Update session every 5 minutes of activity
+    },
     emailAndPassword: {
       enabled: true,
       autoSignIn: true,
