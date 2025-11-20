@@ -36,12 +36,27 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { AccountStorage } from "@/lib/storage";
 import { Account, AccountType } from "@/lib/types";
-import { Plus, Edit, Trash2, CreditCard, Landmark } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  CreditCard,
+  Landmark,
+  RefreshCw,
+} from "lucide-react";
 
 export default function AccountsPage() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accounts, setAccounts] = useState<
+    Array<
+      Account & {
+        calculatedBalance?: number;
+        balanceDifference?: number;
+      }
+    >
+  >([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [loadingBalances, setLoadingBalances] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -54,13 +69,16 @@ export default function AccountsPage() {
   const [website, setWebsite] = useState("");
 
   useEffect(() => {
-    // Load accounts from API on mount
-    const loadAccounts = async () => {
-      const saved = await AccountStorage.getAll();
-      setAccounts(saved);
-    };
-    loadAccounts();
+    // Load accounts with calculated balances on mount
+    loadAccountsWithBalances();
   }, []);
+
+  const loadAccountsWithBalances = async () => {
+    setLoadingBalances(true);
+    const saved = await AccountStorage.getAllWithBalances();
+    setAccounts(saved);
+    setLoadingBalances(false);
+  };
 
   const resetForm = () => {
     setName("");
@@ -90,8 +108,18 @@ export default function AccountsPage() {
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this account?")) {
       await AccountStorage.delete(id);
-      const updated = await AccountStorage.getAll();
-      setAccounts(updated);
+      await loadAccountsWithBalances();
+    }
+  };
+
+  const handleSyncBalance = async (id: string, calculatedBalance: number) => {
+    if (
+      confirm(
+        `Sync stored balance to calculated balance of $${calculatedBalance.toFixed(2)}?`
+      )
+    ) {
+      await AccountStorage.update(id, { balance: calculatedBalance });
+      await loadAccountsWithBalances();
     }
   };
 
@@ -118,8 +146,7 @@ export default function AccountsPage() {
       await AccountStorage.add(accountData);
     }
 
-    const updated = await AccountStorage.getAll();
-    setAccounts(updated);
+    await loadAccountsWithBalances();
     setIsDialogOpen(false);
     resetForm();
   };
@@ -390,7 +417,10 @@ export default function AccountsPage() {
                   <TableRow>
                     <TableHead>Account</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead className="text-right">Stored Balance</TableHead>
+                    <TableHead className="text-right">
+                      Calculated Balance
+                    </TableHead>
                     <TableHead className="text-right">APR</TableHead>
                     <TableHead className="text-right">Min Payment</TableHead>
                     <TableHead className="text-right">Due Day</TableHead>
@@ -427,6 +457,39 @@ export default function AccountsPage() {
                         })}
                       </TableCell>
                       <TableCell className="text-right">
+                        {loadingBalances ? (
+                          <span className="text-muted-foreground">
+                            Loading...
+                          </span>
+                        ) : account.calculatedBalance !== undefined ? (
+                          <div className="flex flex-col items-end">
+                            <span
+                              className={
+                                Math.abs(account.balanceDifference ?? 0) > 0.01
+                                  ? "font-semibold text-emerald-600"
+                                  : ""
+                              }
+                            >
+                              $
+                              {account.calculatedBalance.toLocaleString(
+                                "en-US",
+                                {
+                                  minimumFractionDigits: 2,
+                                }
+                              )}
+                            </span>
+                            {Math.abs(account.balanceDifference ?? 0) >
+                              0.01 && (
+                              <span className="text-xs text-emerald-600">
+                                ● Real-time
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
                         {account.apr ? `${account.apr}%` : "-"}
                       </TableCell>
                       <TableCell className="text-right">
@@ -441,6 +504,22 @@ export default function AccountsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          {account.calculatedBalance !== undefined &&
+                            Math.abs(account.balanceDifference ?? 0) > 0.01 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  handleSyncBalance(
+                                    account.id,
+                                    account.calculatedBalance!
+                                  )
+                                }
+                                title="Sync stored balance to calculated balance"
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                              </Button>
+                            )}
                           <Button
                             variant="ghost"
                             size="sm"

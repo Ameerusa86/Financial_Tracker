@@ -273,6 +273,60 @@ export const AccountStorage = {
       return false;
     }
   },
+
+  /**
+   * Get calculated balance for an account
+   */
+  async getBalanceCalculated(id: string): Promise<{
+    accountId: string;
+    storedBalance: number;
+    calculatedBalance: number;
+    difference: number;
+    transactionCount: number;
+  } | null> {
+    try {
+      const res = await fetch(`/api/accounts/${id}/balance`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (error) {
+      console.error("Error fetching calculated balance:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get all accounts with calculated balances included
+   */
+  async getAllWithBalances(): Promise<
+    Array<
+      Account & {
+        calculatedBalance?: number;
+        balanceDifference?: number;
+      }
+    >
+  > {
+    try {
+      const accounts = await this.getAll();
+      const balances = await Promise.all(
+        accounts.map((acc) => this.getBalanceCalculated(acc.id))
+      );
+
+      return accounts.map((acc, idx) => {
+        const balanceData = balances[idx];
+        if (balanceData) {
+          return {
+            ...acc,
+            calculatedBalance: balanceData.calculatedBalance,
+            balanceDifference: balanceData.difference,
+          };
+        }
+        return acc;
+      });
+    } catch (error) {
+      console.error("Error fetching accounts with balances:", error);
+      return [];
+    }
+  },
 };
 
 /**

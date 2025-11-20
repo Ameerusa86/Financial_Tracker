@@ -39,14 +39,57 @@ export default async function DashboardPage() {
   const monthStart = new Date(year, month, 1);
   const monthEnd = new Date(year, month + 1, 0);
 
-  const [expenses, accounts, schedule] = await Promise.all([
+  const [expenses, accountsRaw, schedules, allTransactions] = await Promise.all([
     Expense.find({
       userId,
       date: { $gte: monthStart.toISOString(), $lte: monthEnd.toISOString() },
     }).lean(),
     Account.find({ userId }).lean(),
-    PaySchedule.findOne({ userId }).lean(),
+    PaySchedule.find({ userId }).lean(),
+    // Import Transaction model
+    (async () => {
+      const { default: Transaction } = await import("@/lib/models/Transaction");
+      return Transaction.find({ userId }).lean();
+    })(),
   ]);
+
+  // Import balance calculation
+  const { calculateAccountBalances } = await import("@/lib/balance");
+
+  // Convert to client format for balance calculation
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const accounts = accountsRaw.map((acc: any) => ({
+    id: acc._id.toString(),
+    name: acc.name,
+    type: acc.type,
+    balance: acc.balance,
+    apr: acc.apr,
+    minPayment: acc.minPayment,
+    dueDay: acc.dueDay,
+    creditLimit: acc.creditLimit,
+    website: acc.website,
+    createdAt: acc.createdAt.toISOString(),
+    updatedAt: acc.updatedAt.toISOString(),
+  }));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const transactions = allTransactions.map((t: any) => ({
+    id: t._id.toString(),
+    userId: t.userId,
+    type: t.type,
+    fromAccountId: t.fromAccountId,
+    toAccountId: t.toAccountId,
+    amount: t.amount,
+    date: t.date,
+    description: t.description,
+    category: t.category,
+    metadata: t.metadata,
+    createdAt: t.createdAt.toISOString(),
+    updatedAt: t.updatedAt.toISOString(),
+  }));
+
+  // Calculate real-time balances
+  const balanceMap = calculateAccountBalances(accounts, transactions);
 
   const totalExpenses = expenses.reduce(
     (sum: number, exp: any) => sum + exp.amount,
@@ -55,17 +98,35 @@ export default async function DashboardPage() {
 
   const creditCardDebt = accounts
     .filter((acc: any) => acc.type === "credit-card")
-    .reduce((sum: number, acc: any) => sum + acc.balance, 0);
+    .reduce((sum: number, acc: any) => {
+      const calculatedBalance = balanceMap.get(acc.id) ?? acc.balance;
+      return sum + calculatedBalance;
+    }, 0);
 
   const totalLoans = accounts
     .filter((acc: any) => acc.type === "loan")
-    .reduce((sum: number, acc: any) => sum + acc.balance, 0);
+    .reduce((sum: number, acc: any) => {
+      const calculatedBalance = balanceMap.get(acc.id) ?? acc.balance;
+      return sum + calculatedBalance;
+    }, 0);
 
   const savings = accounts
     .filter((acc: any) => acc.type === "checking" || acc.type === "savings")
-    .reduce((sum: number, acc: any) => sum + acc.balance, 0);
+    .reduce((sum: number, acc: any) => {
+      const calculatedBalance = balanceMap.get(acc.id) ?? acc.balance;
+      return sum + calculatedBalance;
+    }, 0);
 
-  const totalIncome = (schedule as any)?.typicalAmount || 0;
+  // Calculate total income from actual deposits this month
+  // This accurately reflects variable income (wife's hourly pay) and fixed salary (yours)
+  const totalIncome = transactions
+    .filter(
+      (t) =>
+        t.type === "income_deposit" &&
+        new Date(t.date) >= monthStart &&
+        new Date(t.date) <= monthEnd
+    )
+    .reduce((sum, t) => sum + t.amount, 0);
 
   const stats = {
     totalIncome,
@@ -147,6 +208,9 @@ export default async function DashboardPage() {
             <p className="text-xs text-gray-600 dark:text-gray-400">
               Total outstanding
             </p>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+              ● Real-time balance
+            </p>
           </CardContent>
         </Card>
 
@@ -162,6 +226,9 @@ export default async function DashboardPage() {
             <p className="text-xs text-gray-600 dark:text-gray-400">
               Remaining balance
             </p>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+              ● Real-time balance
+            </p>
           </CardContent>
         </Card>
 
@@ -176,6 +243,9 @@ export default async function DashboardPage() {
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400">
               Total saved
+            </p>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+              ● Real-time balance
             </p>
           </CardContent>
         </Card>
