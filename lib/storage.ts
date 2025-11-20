@@ -368,19 +368,30 @@ export const BillStorage = {
  * PaySchedule helpers
  */
 export const PayScheduleStorage = {
-  async get(): Promise<PaySchedule | null> {
+  async getAll(): Promise<PaySchedule[]> {
     try {
       const res = await fetch("/api/pay-schedule");
-      if (!res.ok) return null;
+      if (!res.ok) return [];
       const data = await res.json();
       return data;
+    } catch (error) {
+      console.error("Error fetching pay schedules:", error);
+      return [];
+    }
+  },
+
+  async getById(id: string): Promise<PaySchedule | null> {
+    try {
+      const res = await fetch(`/api/pay-schedule/${id}`);
+      if (!res.ok) return null;
+      return await res.json();
     } catch (error) {
       console.error("Error fetching pay schedule:", error);
       return null;
     }
   },
 
-  async set(
+  async add(
     schedule: Omit<PaySchedule, "id" | "createdAt" | "updatedAt">
   ): Promise<PaySchedule | null> {
     try {
@@ -392,14 +403,32 @@ export const PayScheduleStorage = {
       if (!res.ok) return null;
       return await res.json();
     } catch (error) {
-      console.error("Error setting pay schedule:", error);
+      console.error("Error creating pay schedule:", error);
       return null;
     }
   },
 
-  async delete(): Promise<boolean> {
+  async update(
+    id: string,
+    schedule: Partial<Omit<PaySchedule, "id" | "createdAt" | "updatedAt">>
+  ): Promise<PaySchedule | null> {
     try {
-      const res = await fetch("/api/pay-schedule", {
+      const res = await fetch(`/api/pay-schedule/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(schedule),
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (error) {
+      console.error("Error updating pay schedule:", error);
+      return null;
+    }
+  },
+
+  async delete(id: string): Promise<boolean> {
+    try {
+      const res = await fetch(`/api/pay-schedule/${id}`, {
         method: "DELETE",
       });
       return res.ok;
@@ -407,6 +436,19 @@ export const PayScheduleStorage = {
       console.error("Error deleting pay schedule:", error);
       return false;
     }
+  },
+
+  // Legacy method for backward compatibility
+  async get(): Promise<PaySchedule | null> {
+    const schedules = await this.getAll();
+    return schedules.length > 0 ? schedules[0] : null;
+  },
+
+  // Legacy method for backward compatibility
+  async set(
+    schedule: Omit<PaySchedule, "id" | "createdAt" | "updatedAt">
+  ): Promise<PaySchedule | null> {
+    return this.add(schedule);
   },
 
   /**
