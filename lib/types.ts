@@ -112,7 +112,7 @@ export interface Transaction {
   date: string; // ISO date string
   description?: string;
   category?: string;
-  metadata?: Record<string, any>; // For extensibility (e.g., payPeriodId, expenseId)
+  metadata?: Record<string, unknown>; // For extensibility (e.g., payPeriodId, expenseId)
   createdAt: string;
   updatedAt: string;
 }
