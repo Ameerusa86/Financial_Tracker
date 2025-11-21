@@ -42,6 +42,7 @@ import { authClient } from "@/lib/auth-client";
 type NavItem = { name: string; href: string; icon: any };
 
 const financeItems: NavItem[] = [
+  { name: "Payday Session", href: "/payday", icon: CalendarDays },
   { name: "Income", href: "/income", icon: TrendingUp },
   { name: "Expenses", href: "/expenses", icon: TrendingDown },
   { name: "Accounts", href: "/accounts", icon: Wallet },
