@@ -1,174 +1,258 @@
-# WalletWave
+# 💰 WalletWave
 
-A comprehensive Next.js application for tracking personal finances including income, expenses, credit cards, loans, and payments. Built with a feature-branch workflow to systematically implement each capability.
+A modern, full-stack personal finance management application built with Next.js 16, TypeScript, and MongoDB. Track your income, expenses, bills, credit cards, loans, and more with an intuitive interface and powerful analytics.
 
-## 📖 Documentation
+[![Next.js](https://img.shields.io/badge/Next.js-16.0-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-7.0-green)](https://www.mongodb.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38bdf8)](https://tailwindcss.com/)
 
-- **[Feature Roadmap](./docs/feature-plan.md)** - Complete list of planned features with tickets, tasks, and acceptance criteria
-- **[Branching Workflow](./docs/branching.md)** - Git workflow, branch naming conventions, and PR guidelines
-- **[Pull Request Template](./.github/pull_request_template.md)** - Standard template for all PRs
+## ✨ Features
 
-## Development Approach
+### 📊 Dashboard & Analytics
 
-This project follows a structured feature-branch workflow:
-
-1. Each feature gets its own branch (e.g., `feature/income-schedule`)
-2. Features are built incrementally with clear acceptance criteria
-3. Pull requests are opened after local testing
-4. Code is reviewed and merged to `master` after approval
-
-See [docs/feature-plan.md](./docs/feature-plan.md) for the complete roadmap and [docs/branching.md](./docs/branching.md) for workflow details.
-
-## Features
-
-### 📊 Dashboard
-
-- Overview of financial status with key metrics
-- Total income and expenses tracking
-- Credit card debt monitoring
-- Loan balance overview
-- Savings and net worth display
-- Interactive charts showing income vs expenses
+- Real-time overview of your financial status
+- Interactive charts for income vs expenses
 - Expense breakdown by category
-- Recent transactions list
+- Recent transaction history
+- Net worth and savings tracking
 
-### 💰 Income Tracking
+### 💸 Comprehensive Financial Management
 
-- Add and categorize income sources
-- Track one-time and recurring income
-- View total and monthly recurring income
-- Detailed transaction history
+- **Income Tracking**: Multiple income streams with pay schedule automation
+- **Expense Management**: Categorized expense tracking with visual breakdowns
+- **Bill Tracking**: Never miss a payment with due date reminders
+- **Credit Cards**: Monitor balances, credit limits, and utilization rates
+- **Loans**: Track mortgages, auto loans, student loans, and personal loans
+- **Accounts**: Manage checking, savings, and investment accounts
 
-### 💸 Expenses Management
+### 🔐 Authentication & Security
 
-- Track and categorize all expenses
-- Multiple expense categories (Food, Transportation, Utilities, Shopping, Healthcare, Entertainment)
-- Visual expense breakdown
-- Category-wise spending analysis
+- Secure authentication with Better Auth
+- Email/password and social login (Google, GitHub)
+- Session management with automatic refresh
+- Protected API routes with middleware
 
-### 💳 Credit Cards
+### 📈 Advanced Features
 
-- Manage multiple credit cards
-- Track balances and credit limits
-- Monitor credit utilization rates
-- Payment due dates and reminders
-- Interest rates and rewards tracking
-- Visual card displays with detailed information
+- **Payment Planner**: Strategic bill payment scheduling
+- **Pay Period Management**: Automatic pay period generation
+- **Balance Tracking**: Real-time account balance updates
+- **Transaction History**: Complete audit trail of all financial activities
+- **Reports**: Generate insights on spending patterns
 
-### 🏦 Loans
+### 🎨 Modern UI/UX
 
-- Track mortgages, auto loans, student loans, and personal loans
-- Monitor principal balance and payments
-- View payment schedules
-- Track interest rates
-- Progress visualization for each loan
-- Upcoming payment reminders
+- Responsive design for mobile, tablet, and desktop
+- Dark/light theme support
+- Beautiful components from shadcn/ui
+- Smooth animations and transitions
+- Intuitive navigation
 
-## Tech Stack
+## 🚀 Tech Stack
 
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
+### Frontend
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript 5.9
+- **Styling**: Tailwind CSS 4.0
+- **UI Components**: Radix UI + shadcn/ui
 - **Charts**: Recharts
 - **Icons**: Lucide React
+- **Forms**: React Hook Form + Zod validation
 
-## Getting Started
+### Backend
+
+- **Database**: MongoDB 7.0 with Mongoose ODM
+- **Authentication**: Better Auth 1.3
+- **API Routes**: Next.js API Routes
+- **Session Management**: Cookie-based sessions
+
+### DevOps
+
+- **Hosting**: Vercel (recommended)
+- **Version Control**: Git + GitHub
+- **Package Manager**: npm
+
+## 📦 Installation
 
 ### Prerequisites
 
 - Node.js 18+ installed
-- npm or yarn package manager
+- MongoDB Atlas account (free tier available)
+- Git installed
 
-### Installation
+### Local Development Setup
 
-1. Install dependencies
-
-```bash
-npm install
-```
-
-2. Run the development server
+1. **Clone the repository**
 
 ```bash
-npm run dev
+   git clone https://github.com/yourusername/finance-tracker.git
+   cd finance-tracker
 ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser
+2. **Install dependencies**
 
-## Project Structure
-
-```plaintext
-wallet-wave/
-├── app/
-│   ├── page.tsx              # Dashboard page
-│   ├── income/
-│   │   └── page.tsx          # Income schedule & tracking
-│   ├── expenses/
-│   │   └── page.tsx          # Expenses page
-│   ├── credit-cards/
-│   │   └── page.tsx          # Credit cards page
-│   ├── loans/
-│   │   └── page.tsx          # Loans page
-│   ├── layout.tsx            # Root layout with navigation
-│   └── globals.css           # Global styles
-├── components/
-│   ├── ui/                   # shadcn/ui components
-│   ├── navbar.tsx            # Navigation component
-│   ├── recent-transactions.tsx
-│   ├── monthly-chart.tsx
-│   └── expense-breakdown.tsx
-├── lib/
-│   ├── types.ts              # TypeScript type definitions
-│   ├── storage.ts            # Client-side storage abstraction
-│   └── utils.ts              # Utility functions
-├── docs/
-│   ├── feature-plan.md       # Feature roadmap and tickets
-│   └── branching.md          # Git workflow documentation
-├── .github/
-│   └── pull_request_template.md
-└── package.json
+```bash
+   npm install
 ```
 
-## Usage
+3. **Set up environment variables**
 
-### Setting Up Income Schedule
+   Copy .env.example to .env.local:
 
-1. Navigate to **Income** page
-2. Configure your pay frequency (weekly, bi-weekly, etc.)
-3. Set your next pay date and typical net amount
-4. Save to see upcoming pay dates and track your income schedule
+```bash
+   cp .env.example .env.local
+```
 
-### Adding Transactions
+Update .env.local with your credentials
 
-1. Navigate to the relevant page (Income, Expenses, Credit Cards, or Loans)
-2. Click the "Add" button
-3. Fill in the transaction details
-4. Submit to persist to local storage
+4. **Generate authentication secret**
 
-### Viewing Analytics
+```bash
+   openssl rand -base64 32
+```
 
-- Visit the Dashboard to see an overview of all your finances
-- Use the tabs to switch between different chart views
-- Check individual pages for category-specific insights
+Copy the output to BETTER_AUTH_SECRET in .env.local
 
-## Data Persistence
+5. **Run the development server**
 
-The application uses **localStorage** for client-side persistence. All data (pay schedules, accounts, bills, expenses) is stored locally in your browser. Future versions will add backend integration for cloud sync.
+```bash
+   npm run dev
+```
 
-## Future Enhancements
+6. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-- Database integration for persistent data storage
-- User authentication and multi-user support
-- Export data to CSV/PDF
-- Budget planning and alerts
-- Bill reminders and notifications
-- Mobile responsive enhancements
-- Dark mode support
-- Advanced filtering and search
-- Financial goals tracking
-- Investment portfolio tracking
+## 🌐 Deployment to Vercel
 
-## License
+### One-Click Deploy
 
-This project is open source and available under the MIT License.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/finance-tracker)
+
+### Manual Deployment
+
+1. **Install Vercel CLI** (optional)
+
+```bash
+   npm install -g vercel
+```
+
+2. **Connect to Vercel**
+
+```bash
+   vercel login
+```
+
+3. **Deploy**
+
+```bash
+   vercel
+```
+
+4. **Configure Environment Variables**
+
+   In your Vercel dashboard (Project Settings → Environment Variables), add:
+   - MONGODB_URI
+   - BETTER_AUTH_SECRET
+   - BETTER_AUTH_URL (set to your production URL)
+   - OAuth credentials (optional)
+
+5. **Redeploy**
+
+```bash
+   vercel --prod
+```
+
+### Important Notes for Production
+
+- Update BETTER_AUTH_URL to match your production domain
+- Ensure MongoDB Atlas allows connections from Vercel IPs
+- Add your production domain to OAuth provider redirect URIs
+- Enable MongoDB connection pooling for better performance
+
+## 🗂️ Project Structure
+
+```
+finance-tracker/
+├── app/                          # Next.js app directory
+│   ├── api/                      # API routes
+│   ├── (pages)/                  # Application pages
+│   ├── layout.tsx                # Root layout
+│   └── globals.css               # Global styles
+├── components/                   # React components
+├── lib/                          # Utilities and models
+├── docs/                         # Project documentation
+├── public/                       # Static assets
+└── .env.example                  # Environment variable template
+```
+
+## 🔒 Security & Best Practices
+
+- ✅ Environment variables properly secured with .env.local (gitignored)
+- ✅ Authentication tokens stored in HTTP-only cookies
+- ✅ API routes protected with session middleware
+- ✅ MongoDB connection pooling for efficiency
+- ✅ Input validation with Zod schemas
+- ✅ XSS protection via React's built-in escaping
+
+## 🧪 Development
+
+### Available Scripts
+
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+```
+
+### Git Workflow
+
+This project follows a feature-branch workflow:
+
+1. Create feature branch: git checkout -b feature/your-feature
+2. Make changes and commit: git commit -m "feat: add feature"
+3. Push branch: git push origin feature/your-feature
+4. Open Pull Request
+5. Merge to master after review
+
+See [docs/branching.md](./docs/branching.md) for detailed workflow.
+
+## 📚 Documentation
+
+- **[Feature Roadmap](./docs/feature-plan.md)** - Complete feature list and tickets
+- **[Branching Workflow](./docs/branching.md)** - Git conventions and PR process
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## 👤 Author
+
+**Your Name**
+
+- GitHub: [@Ameerusa86](https://github.com/Ameerusa86)
+- Portfolio: [Your Portfolio URL]
+
+## 🙏 Acknowledgments
+
+- [Next.js](https://nextjs.org/) - The React framework
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS
+- [shadcn/ui](https://ui.shadcn.com/) - Beautiful components
+- [Better Auth](https://better-auth.com/) - Authentication solution
+- [Recharts](https://recharts.org/) - Charting library
+
+---
+
+**⭐ If you find this project useful, please consider giving it a star on GitHub!**

@@ -28,7 +28,7 @@ export default function LoginPage() {
             onSuccess: () => router.push("/"),
           }
         );
-        if (error) setError(error.message);
+        if (error) setError(error.message || "Login failed");
       } else {
         const { error } = await authClient.signIn.username(
           { username: identifier, password },
@@ -36,7 +36,7 @@ export default function LoginPage() {
             onSuccess: () => router.push("/"),
           }
         );
-        if (error) setError(error.message);
+        if (error) setError(error.message || "Login failed");
       }
     } catch (err: any) {
       setError(err?.message ?? "Failed to sign in");

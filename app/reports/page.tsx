@@ -51,11 +51,22 @@ export default function ReportsPage() {
 
   useEffect(() => {
     setMounted(true);
-    setExpenseTotals(getMonthlyExpenseTotals(MONTH_WINDOW));
-    setIncomeTotals(getMonthlyIncomeTotals(MONTH_WINDOW));
-    setCategorySeries(getMonthlyCategoryBreakdown(MONTH_WINDOW));
-    setNetWorth(getCurrentNetWorth());
-    setSavingsRate(getSavingsRate());
+    const loadData = async () => {
+      const [expenses, income, categories, netWorthData, rate] =
+        await Promise.all([
+          getMonthlyExpenseTotals(MONTH_WINDOW),
+          getMonthlyIncomeTotals(MONTH_WINDOW),
+          getMonthlyCategoryBreakdown(MONTH_WINDOW),
+          getCurrentNetWorth(),
+          getSavingsRate(),
+        ]);
+      setExpenseTotals(expenses);
+      setIncomeTotals(income);
+      setCategorySeries(categories);
+      setNetWorth(netWorthData);
+      setSavingsRate(rate);
+    };
+    loadData();
   }, []);
 
   const incomeVsExpenseData = incomeTotals.map((inc, i) => ({
@@ -95,11 +106,11 @@ export default function ReportsPage() {
   const latestCategories =
     categorySeries[categorySeries.length - 1]?.categoryTotals || {};
   const categoryTotalSum = Object.values(latestCategories).reduce(
-    (s: number, v: number) => s + v,
+    (s, v) => (s as number) + (v as number),
     0
-  );
+  ) as number;
   const topCategories = Object.entries(latestCategories)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => (b[1] as number) - (a[1] as number))
     .slice(0, 5);
 
   // Transform category series for stacked view
@@ -108,10 +119,13 @@ export default function ReportsPage() {
   );
   const categoryChartData = categorySeries.map((p) => ({
     month: p.label,
-    ...allCategories.reduce((acc, c) => {
-      acc[c] = p.categoryTotals[c] || 0;
-      return acc;
-    }, {} as Record<string, number>),
+    ...allCategories.reduce(
+      (acc, c) => {
+        acc[c] = p.categoryTotals[c] || 0;
+        return acc;
+      },
+      {} as Record<string, number>
+    ),
   }));
 
   function download(filename: string, content: string) {
@@ -124,13 +138,13 @@ export default function ReportsPage() {
     URL.revokeObjectURL(url);
   }
 
-  function exportIncomeVsExpense() {
-    const csv = exportIncomeVsExpenseCSV(MONTH_WINDOW);
+  async function exportIncomeVsExpense() {
+    const csv = await exportIncomeVsExpenseCSV(MONTH_WINDOW);
     download("income_vs_expenses.csv", csv);
   }
 
-  function exportCategoryTrends() {
-    const csv = exportCategoryTrendsCSV(MONTH_WINDOW);
+  async function exportCategoryTrends() {
+    const csv = await exportCategoryTrendsCSV(MONTH_WINDOW);
     download("category_trends.csv", csv);
   }
 
@@ -341,8 +355,9 @@ export default function ReportsPage() {
                 </div>
               )}
               {topCategories.map(([cat, val]) => {
+                const numVal = val as number;
                 const pct = categoryTotalSum
-                  ? (val / categoryTotalSum) * 100
+                  ? (numVal / categoryTotalSum) * 100
                   : 0;
                 return (
                   <div
@@ -351,7 +366,7 @@ export default function ReportsPage() {
                   >
                     <span className="capitalize text-gray-300">{cat}</span>
                     <span className="text-gray-400">
-                      {formatCurrency(val)} · {pct.toFixed(1)}%
+                      {formatCurrency(numVal)} · {pct.toFixed(1)}%
                     </span>
                   </div>
                 );
