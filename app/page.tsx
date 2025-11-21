@@ -274,8 +274,12 @@ export default async function DashboardPage() {
             <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
               {formatCurrency(stats.checkingCash)}
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400">Checking accounts</p>
-            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">● Real-time balance</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Checking accounts
+            </p>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+              ● Real-time balance
+            </p>
           </CardContent>
         </Card>
       </div>
